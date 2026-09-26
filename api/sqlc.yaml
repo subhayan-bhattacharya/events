@@ -1,0 +1,36 @@
+# sqlc reads your SQL and generates type-safe Go code for it.
+# Run from api/:  go tool sqlc generate
+version: "2"                 # config file format version (2 is current)
+
+sql:                         # a list: one entry per database/code package; we have one
+  - engine: "postgresql"     # which SQL dialect sqlc parses
+
+    # Where sqlc learns the table shapes. Pointing at the goose migrations folder
+    # means the migrations ARE the schema; sqlc reads only the "+goose Up" parts.
+    schema: "db/migrations"
+
+    # Where your hand-written queries live, e.g. db/queries/users.sql containing
+    #   -- name: GetUser :one
+    #   SELECT * FROM users WHERE id = $1;
+    # Each "-- name:" becomes one Go method.
+    queries: "db/queries"
+
+    gen:
+      go:
+        package: "db"             # Go package name of the generated code
+        out: "internal/db"        # folder it is written to (never hand-edit it)
+        sql_package: "pgx/v5"     # generate code for the pgx v5 driver, not database/sql
+        emit_json_tags: false     # no `json:"..."` tags: these structs never go out as JSON
+                                  # (Go project layout decision: httpapi has its own types)
+
+        # By default pgx maps Postgres UUID to pgtype.UUID, which is awkward.
+        # These two rules swap in github.com/google/uuid instead.
+        overrides:
+          - db_type: "uuid"                   # a NOT NULL uuid column
+            go_type: "github.com/google/uuid.UUID"
+          - db_type: "uuid"                   # a nullable uuid column
+            nullable: true
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+              pointer: true                   # *uuid.UUID, where nil means NULL
