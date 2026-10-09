@@ -45,6 +45,7 @@ Docker must be running for verification. Plain-language explanations preferred.
 
 - [Database plan, D1–D32](../../Complete%20PostgreSQL%20Database%20Model%20for%20the%20Life%20Events%20App.md): full schema and behaviour settled in two grilling sessions before this map
 - [Go project layout](issues/01-go-project-layout.md): module in `api/`, packages grouped by feature, repository pattern (Service → Repository → sqlc), separate API types, sqlc/goose as Go tools. Build order changed: reminders before trackers
+- [Test setup](issues/02-test-setup.md): testcontainers-go with PostgreSQL 17; one migrated container per suite and rollback transactions per repository test; integration tests skip in short mode
 - [Chunk 0: Skeleton](issues/04-skeleton.md): module builds; `GET /api/healthz` returns 200/503 from a real DB ping; config via root `.env`
 
 ## Not yet specified
