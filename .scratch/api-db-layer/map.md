@@ -47,6 +47,7 @@ Docker must be running for verification. Plain-language explanations preferred.
 - [Go project layout](issues/01-go-project-layout.md): module in `api/`, packages grouped by feature, repository pattern (Service → Repository → sqlc), separate API types, sqlc/goose as Go tools. Build order changed: reminders before trackers
 - [Test setup](issues/02-test-setup.md): testcontainers-go with PostgreSQL 17; one migrated container per suite and rollback transactions per repository test; integration tests skip in short mode
 - [Chunk 0: Skeleton](issues/04-skeleton.md): module builds; `GET /api/healthz` returns 200/503 from a real DB ping; config via root `.env`
+- [Dev-only login](issues/03-dev-login.md): dev-tagged route and development env gate; fixed configured identity, shared session creation; exact `http://localhost:8080` Origin accepted only in development, missing/wrong Origin rejected; production keeps D31's exact HTTPS Origin. Implementation and localhost Secure-cookie verification belong to 05.
 
 ## Not yet specified
 

@@ -1,11 +1,12 @@
 ---
 name: project-journal
-description: Maintain the Life Events HTML project journal after project discussions, decisions, implementations, verifications, or changes to the next step. Use at the end of any project work session and when asked for project status or history.
+description: Maintain the Life Events HTML project journal after project discussions, decisions, implementations, verifications, or changes to the next step. Use at the end of any project work session and when asked for project status or history. Use this only when major milestones/steps or important decisions are reached.
 ---
 
 # Project journal
 
-Maintain `docs/project-journal.html` as a **readable historical record**, not a replacement for the decision log or `.scratch/api-db-layer/map.md` and tickets. Follow `AGENTS.md` for when to run this skill.
+Maintain `docs/project-journal.html` as a **readable historical record**, not a replacement for the decision log or `.scratch/api-db-layer/map.md` and tickets. Follow `AGENTS.md` for when to run this skill. Do not update
+this file for every single message sent back and forth , log this for major milestones or important decisions.
 
 1. **Gather evidence.** Read the relevant changed files, Git diff/status, `project.md`, the map, touched tickets and the database decision log. For a status question, check the current frontier, including claimed and blocked tickets. Use only the conversation you can actually see; older chats are not recoverable unless recorded in files. Done when every fact to be added has a known source.
 2. **Update the HTML.** Maintain the chronological progress log, current-state/next-step section, component sections, decisions and open questions in `docs/project-journal.html`. Record what was discussed, what was actually built or verified, how problems were resolved, alternatives considered, and *why* a choice was made. Link to source files and ticket numbers using relative links; include dates only when evidenced. Label proposals, unverified claims and open questions explicitly. When changing a decision, preserve the earlier choice in the history and mark its supersession rather than silently overwriting it. Done when the page answers “where are we?”, “what next?”, and “why this design?” without implying planned work is finished.
