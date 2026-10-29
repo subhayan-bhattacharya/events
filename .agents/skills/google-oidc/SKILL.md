@@ -15,8 +15,9 @@ metadata:
 - **The user writes the Go code.** The agent explains the flow, cites the spec section,
   proposes tests and reviews. Go library choice follows
   `../go-development/references/choosing-packages.md`.
-- **Subagents:** [`../../shared/subagents.md`](../../shared/subagents.md). Use parallel
-  `researcher` agents to re-check the Google docs and RFCs before building.
+- **Subagents:** load the global `subagents` skill; pass `agentScope: "both"` so this
+  repo's `.pi/agents/` are used. Use parallel `researcher` agents to re-check the Google
+  docs and RFCs before building.
   **Undecided choices:** [`../../shared/open-questions.md`](../../shared/open-questions.md).
 
 ## Decided already (do not re-open without the user)

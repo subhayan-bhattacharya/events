@@ -14,7 +14,8 @@ metadata:
   before stating it.
 - **The agent writes SQL** (migrations, sqlc query files); the user reviews every file.
   Go code stays with the user (see the `go-development` skill).
-- **Subagents:** [`../../shared/subagents.md`](../../shared/subagents.md).
+- **Subagents:** load the global `subagents` skill; pass `agentScope: "both"` so this
+  repo's `.pi/agents/` are used.
   **Undecided choices:** [`../../shared/open-questions.md`](../../shared/open-questions.md).
 
 ## Version and docs

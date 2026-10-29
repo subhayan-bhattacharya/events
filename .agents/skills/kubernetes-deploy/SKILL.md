@@ -15,7 +15,8 @@ metadata:
 - **The agent writes** Dockerfiles, manifests and deploy scripts; **the user reviews**
   every file. Go changes the deployment needs (signal handling, `PORT`) are written by
   the user (see `go-development`).
-- **Subagents:** [`../../shared/subagents.md`](../../shared/subagents.md).
+- **Subagents:** load the global `subagents` skill; pass `agentScope: "both"` so this
+  repo's `.pi/agents/` are used.
   **Undecided choices:** [`../../shared/open-questions.md`](../../shared/open-questions.md).
 
 ## Decided already

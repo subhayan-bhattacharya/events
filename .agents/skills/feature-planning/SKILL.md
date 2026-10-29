@@ -16,7 +16,9 @@ is a proposal until the user approves it.
   unanswered question stays open in the plan; it is never quietly filled in.
 - **Ownership:** the user writes Go code (tests included) unless they say otherwise; the
   agent writes SQL, Dockerfiles, manifests and docs for the user to review.
-- **Subagents:** [`../../shared/subagents.md`](../../shared/subagents.md).
+- **Subagents:** load the global `subagents` skill. This repo has project agents in
+  `.pi/agents/` (Life Events versions of `scout`, `researcher`, `reviewer`, `worker`), so
+  pass `agentScope: "both"` on every call.
   **Undecided technology choices:** [`../../shared/open-questions.md`](../../shared/open-questions.md).
 
 ## Steps

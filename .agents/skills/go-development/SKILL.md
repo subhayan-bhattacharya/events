@@ -16,8 +16,9 @@ metadata:
   agent to write it. The agent explains, points to the exact doc section, proposes what to
   test, reviews, and runs the build and tests. Non-Go files (SQL, Dockerfiles, manifests)
   the agent writes and the user reviews.
-- **Subagents** for parallel research, recon and independent review:
-  [`../../shared/subagents.md`](../../shared/subagents.md).
+- **Subagents:** load the global `subagents` skill. This repo has project agents in
+  `.pi/agents/` (Life Events versions of `scout`, `researcher`, `reviewer`, `worker`), so
+  pass `agentScope: "both"` on every call.
 - **Undecided technology choices** are listed in
   [`../../shared/open-questions.md`](../../shared/open-questions.md). Raise the relevant
   one when work touches it.
