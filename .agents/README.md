@@ -8,6 +8,7 @@ only each skill's name and description until a task needs the full skill (type
 | Skill | Use for |
 |---|---|
 | `feature-planning` | Planning and scoping features; picks the global and project skills and subagents a task needs |
+| `project-journal` | Maintains `docs/project-journal.html` after project discussions, decisions, implementation, verification, and status updates |
 | `go-development` | Go 1.27 code in `api/`: net/http, pgx, sqlc, goose, testcontainers, tests, choosing Go packages |
 | `postgres-sql` | PostgreSQL 17 migrations and queries |
 | `google-oidc` | Google login, sessions |
@@ -20,7 +21,8 @@ Also in this folder:
 
 Working agreements the skills enforce: the agent asks rather than assumes; Go code is
 written by the developer unless they ask otherwise; the agent writes SQL, Dockerfiles and
-manifests for review.
+manifests for review. `AGENTS.md` prompts the agent to keep the HTML journal current;
+older discussions can only be backfilled from written evidence.
 
 ## One-time setup for each developer
 
