@@ -38,9 +38,9 @@ user decides, record the answer where the project records decisions (a ticket's
     `gen_random_uuid()` in core ([docs](https://www.postgresql.org/docs/17/functions-uuid.html));
     pgcrypto's copy is marked obsolete. Keep the extension (e.g. for other pgcrypto
     functions) or drop it from the first migration.
-11. **Ingress vs Gateway API.** D30 says "routed by the Kubernetes ingress". The
-    community `ingress-nginx` controller is retired (no fixes after March 2026,
-    [announcement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)); the
-    Ingress API is GA but frozen and Kubernetes recommends
-    [Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/).
-    Choose the API and the controller during the deployment grilling.
+11. **Routing API for Traefik.** Controller decided: **Traefik** (user, 2026-10-29). Still
+    open: route with the standard `Ingress`, Traefik's `IngressRoute` CRD, or
+    [Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/) (the
+    Ingress API is GA but frozen; Kubernetes recommends Gateway API). Plus Traefik's
+    install method and certificate issuance. Details and links:
+    `.agents/skills/kubernetes-deploy/references/traefik.md`.
