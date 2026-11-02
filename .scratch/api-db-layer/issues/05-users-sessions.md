@@ -29,8 +29,15 @@ D4, D23, D28, D30
   `fk_sessions_user`), session cascade on user delete, and the `updated_at` trigger.
   `go build`, `go vet`, `go test -short` pass. Go tests for it not yet written.
 - Queries `api/db/queries/auth.sql` written (agent), generated into `api/internal/db`:
-  `UpsertUserByIdentity`, `CreateSession`, `GetSessionUser` (takes `now` from Go;
-  no row = unknown/expired), `DeleteSession`. `last_seen_at` is not updated per
-  request (agent recommendation, pending user confirmation). Build/vet pass;
-  query SQL probed by hand. Awaiting user review.
-- Open: session lifetime (needed before the Go expiry logic).
+  `UpsertUserByIdentity`, `CreateSession`, `AuthenticateSession`, `DeleteSession`.
+  The user reports reviewing the code so far. The new `AuthenticateSession` query
+  refreshes `last_seen_at` only when the session is within both limits; no row means
+  unknown, absolutely expired, or idle-expired. sqlc generation, build, vet and
+  short tests pass. With Docker available on 2026-11-02, the local database was
+  confirmed at migration version 1. A rolled-back SQL probe confirmed successful
+  `last_seen_at` refresh without changing `expires_at`, rejection at the exact
+  24-hour idle boundary, and rejection at the absolute expiry boundary.
+  `go test ./...` passed; no Go auth tests exist yet.
+- Session policy agreed in the 2026-11-02 conversation: seven days absolute from
+  login (`expires_at` set by Go), plus 24 hours of inactivity. Successful
+  authentication refreshes `last_seen_at` without extending `expires_at`.

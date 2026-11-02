@@ -17,16 +17,23 @@ RETURNING id, oidc_issuer, oidc_subject, email, display_name, time_zone,
 INSERT INTO sessions (token_hash, user_id, expires_at)
 VALUES (@token_hash, @user_id, @expires_at);
 
--- name: GetSessionUser :one
--- Finds a session that has not expired at @now, with its user. No row
--- (pgx.ErrNoRows) means unknown or expired: the caller answers 401.
--- @now comes from Go so tests can pass a fixed time.
+-- name: AuthenticateSession :one
+-- Successful authentication refreshes last_seen_at. The fixed expires_at
+-- remains unchanged, so activity cannot extend the seven-day maximum.
+-- No row (pgx.ErrNoRows) means unknown, absolutely expired, or idle for
+-- at least 24 hours: the caller answers 401. Go supplies @now for testing.
+WITH refreshed AS (
+    UPDATE sessions
+    SET last_seen_at = GREATEST(last_seen_at, @now::timestamptz)
+    WHERE token_hash = @token_hash
+      AND expires_at > @now::timestamptz
+      AND last_seen_at + interval '24 hours' > @now::timestamptz
+    RETURNING user_id, expires_at
+)
 SELECT u.id, u.email, u.display_name, u.time_zone, u.preferred_currency,
-       s.expires_at
-FROM sessions AS s
-JOIN users AS u ON u.id = s.user_id
-WHERE s.token_hash = @token_hash
-  AND s.expires_at > @now::timestamptz;
+       refreshed.expires_at
+FROM refreshed
+JOIN users AS u ON u.id = refreshed.user_id;
 
 -- name: DeleteSession :exec
 -- Logout. Deleting an already-deleted session is not an error.

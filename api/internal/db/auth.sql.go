@@ -12,6 +12,53 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const authenticateSession = `-- name: AuthenticateSession :one
+WITH refreshed AS (
+    UPDATE sessions
+    SET last_seen_at = GREATEST(last_seen_at, $1::timestamptz)
+    WHERE token_hash = $2
+      AND expires_at > $1::timestamptz
+      AND last_seen_at + interval '24 hours' > $1::timestamptz
+    RETURNING user_id, expires_at
+)
+SELECT u.id, u.email, u.display_name, u.time_zone, u.preferred_currency,
+       refreshed.expires_at
+FROM refreshed
+JOIN users AS u ON u.id = refreshed.user_id
+`
+
+type AuthenticateSessionParams struct {
+	Now       pgtype.Timestamptz
+	TokenHash []byte
+}
+
+type AuthenticateSessionRow struct {
+	ID                uuid.UUID
+	Email             string
+	DisplayName       pgtype.Text
+	TimeZone          string
+	PreferredCurrency string
+	ExpiresAt         pgtype.Timestamptz
+}
+
+// Successful authentication refreshes last_seen_at. The fixed expires_at
+// remains unchanged, so activity cannot extend the seven-day maximum.
+// No row (pgx.ErrNoRows) means unknown, absolutely expired, or idle for
+// at least 24 hours: the caller answers 401. Go supplies @now for testing.
+func (q *Queries) AuthenticateSession(ctx context.Context, arg AuthenticateSessionParams) (AuthenticateSessionRow, error) {
+	row := q.db.QueryRow(ctx, authenticateSession, arg.Now, arg.TokenHash)
+	var i AuthenticateSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.TimeZone,
+		&i.PreferredCurrency,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const createSession = `-- name: CreateSession :exec
 INSERT INTO sessions (token_hash, user_id, expires_at)
 VALUES ($1, $2, $3)
@@ -38,46 +85,6 @@ WHERE token_hash = $1
 func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
 	_, err := q.db.Exec(ctx, deleteSession, tokenHash)
 	return err
-}
-
-const getSessionUser = `-- name: GetSessionUser :one
-SELECT u.id, u.email, u.display_name, u.time_zone, u.preferred_currency,
-       s.expires_at
-FROM sessions AS s
-JOIN users AS u ON u.id = s.user_id
-WHERE s.token_hash = $1
-  AND s.expires_at > $2::timestamptz
-`
-
-type GetSessionUserParams struct {
-	TokenHash []byte
-	Now       pgtype.Timestamptz
-}
-
-type GetSessionUserRow struct {
-	ID                uuid.UUID
-	Email             string
-	DisplayName       pgtype.Text
-	TimeZone          string
-	PreferredCurrency string
-	ExpiresAt         pgtype.Timestamptz
-}
-
-// Finds a session that has not expired at @now, with its user. No row
-// (pgx.ErrNoRows) means unknown or expired: the caller answers 401.
-// @now comes from Go so tests can pass a fixed time.
-func (q *Queries) GetSessionUser(ctx context.Context, arg GetSessionUserParams) (GetSessionUserRow, error) {
-	row := q.db.QueryRow(ctx, getSessionUser, arg.TokenHash, arg.Now)
-	var i GetSessionUserRow
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.DisplayName,
-		&i.TimeZone,
-		&i.PreferredCurrency,
-		&i.ExpiresAt,
-	)
-	return i, err
 }
 
 const upsertUserByIdentity = `-- name: UpsertUserByIdentity :one
