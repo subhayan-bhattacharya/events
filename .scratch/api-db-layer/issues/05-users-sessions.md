@@ -41,3 +41,9 @@ D4, D23, D28, D30
 - Session policy agreed in the 2026-11-02 conversation: seven days absolute from
   login (`expires_at` set by Go), plus 24 hours of inactivity. Successful
   authentication refreshes `last_seen_at` without extending `expires_at`.
+- On 2026-11-03, `api/internal/auth/service.go` and `repository.go` were added:
+  session creation generates a random token, stores only its SHA-256 hash through
+  sqlc, and returns the raw token and seven-day expiry for the future cookie
+  handler. Build, vet and the existing full Go tests pass, but no auth tests or
+  HTTP wiring exist yet. The user paused ticket work after requesting a commit
+  and push; resume this claimed ticket with dev login, middleware, logout and tests.
