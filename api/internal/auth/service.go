@@ -16,6 +16,12 @@ type TokenDetailsHandler struct {
 	Expiration time.Time
 }
 
+type DevUserConfig struct {
+	Email       string
+	DisplayName string
+	TimeZone    string
+}
+
 // GenerateSessionToken creates a 32-byte cryptographically secure random string
 func GenerateSessionToken() (string, error) {
 	b := make([]byte, 32) // 256 bits of entropy
@@ -27,8 +33,16 @@ func GenerateSessionToken() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-type Repository interface {
-	InsertSession(ctx context.Context, tokenDetails TokenDetails) error
+func GetTokenDetails(userId uuid.UUID) (TokenDetailsHandler, error) {
+	var tokenDetails TokenDetailsHandler
+	token, err := GenerateSessionToken()
+	if err != nil {
+		return tokenDetails, err
+	}
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+	tokenDetails.Token = token
+	tokenDetails.Expiration = expiresAt
+	return tokenDetails, nil
 }
 
 type Service struct {
@@ -39,20 +53,37 @@ func NewService(repository Repository) *Service {
 	return &Service{repository: repository}
 }
 
-func (s Service) CreateSession(ctx context.Context, userID uuid.UUID) (TokenDetailsHandler, error) {
-	var tokenDetails TokenDetailsHandler
-	token, err := GenerateSessionToken()
-	if err != nil {
-		return tokenDetails, fmt.Errorf("generate session token: %w", err)
+func (s Service) DevLogin(
+	ctx context.Context,
+	devUserDetails DevUserConfig,
+) (TokenDetailsHandler, error) {
+	userDetailsIdentity := UserIdentity{
+		Issuer:      "dev",
+		Subject:     "local",
+		Email:       devUserDetails.Email,
+		DisplayName: devUserDetails.DisplayName,
+		TimeZone:    devUserDetails.TimeZone,
 	}
-	expiresAt := time.Now().Add(7 * 24 * time.Hour)
-	tokenDetails.Token = token
-	tokenDetails.Expiration = expiresAt
-	tokenHash := sha256.Sum256([]byte(token))
+	userId, err := s.repository.UpsertUser(ctx, userDetailsIdentity)
+	if err != nil {
+		return TokenDetailsHandler{}, err
+	}
+	return s.CreateSession(ctx, userId)
+}
+
+func (s Service) CreateSession(
+	ctx context.Context, userID uuid.UUID,
+) (TokenDetailsHandler, error) {
+	var tokenDetails TokenDetailsHandler
+	tokenDetails, err := GetTokenDetails(userID)
+	if err != nil {
+		return tokenDetails, err
+	}
+	tokenHash := sha256.Sum256([]byte(tokenDetails.Token))
 	repositoryTokenDetails := TokenDetails{
 		TokenHash: tokenHash[:],
 		UserID:    userID,
-		ExpiresAt: expiresAt,
+		ExpiresAt: tokenDetails.Expiration,
 	}
 	err = s.repository.InsertSession(ctx, repositoryTokenDetails)
 	if err != nil {

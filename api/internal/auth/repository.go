@@ -24,6 +24,11 @@ type UserIdentity struct {
 	TimeZone    string
 }
 
+type Repository interface {
+	InsertSession(ctx context.Context, tokenDetails TokenDetails) error
+	UpsertUser(ctx context.Context, userDetails UserIdentity) (uuid.UUID, error)
+}
+
 type SessionRepository struct {
 	queries *db.Queries
 }
