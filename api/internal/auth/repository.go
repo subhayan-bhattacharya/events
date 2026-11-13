@@ -10,12 +10,16 @@ import (
 	"github.com/subhayan-bhattacharya/events/api/internal/db"
 )
 
+// TokenDetails is what is stored for a session: the hash of its token, the
+// owning user and the absolute expiry.
 type TokenDetails struct {
 	TokenHash []byte
 	UserID    uuid.UUID
 	ExpiresAt time.Time
 }
 
+// UserIdentity identifies an account by OIDC issuer and subject (D4) and
+// carries the profile fields written with it.
 type UserIdentity struct {
 	Issuer      string
 	Subject     string
@@ -24,19 +28,17 @@ type UserIdentity struct {
 	TimeZone    string
 }
 
-type Repository interface {
-	InsertSession(ctx context.Context, tokenDetails TokenDetails) error
-	UpsertUser(ctx context.Context, userDetails UserIdentity) (uuid.UUID, error)
-}
-
+// SessionRepository implements Repository on top of the sqlc queries.
 type SessionRepository struct {
 	queries *db.Queries
 }
 
+// NewSessionRepository returns a SessionRepository using queries.
 func NewSessionRepository(queries *db.Queries) *SessionRepository {
 	return &SessionRepository{queries: queries}
 }
 
+// InsertSession stores a session row for the given token hash.
 func (r *SessionRepository) InsertSession(
 	ctx context.Context, tokenDetails TokenDetails,
 ) error {
@@ -51,6 +53,9 @@ func (r *SessionRepository) InsertSession(
 	)
 }
 
+// UpsertUser inserts the user for the identity, or updates email, display name
+// and time zone if the identity exists, and returns the user's ID. The display
+// name is always stored as non-NULL, even when empty.
 func (r *SessionRepository) UpsertUser(
 	ctx context.Context, userDetails UserIdentity,
 ) (uuid.UUID, error) {

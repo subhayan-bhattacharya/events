@@ -45,3 +45,6 @@ User is comfortable enough to have written the repository/service/sqlc wiring; h
 - CreateSession keeps a redundant `var tokenDetails` then `:=`.
 - Interface lives in repository.go (Go idiom: define at consumer, service.go).
 - Still open nits: value receivers, TokenDetailsHandler name, RawURLEncoding, injectable clock, empty-name guard.
+
+## Session 3 (2026-11-13): Step 1 review delivered, state = needs fixes
+Committed+pushed bf7d7a5/dbfb801. Review sent: logic correct (fixed identity, upsert before session, no session on upsert failure). To fix: unused userId param + unwrapped error in GetTokenDetails (rename without Get, unexport), redundant var in CreateSession, userId->userID, consts for dev/local, doc comments, pointer receivers, move Repository interface to service.go. Decisions pending from user: empty-name guard location, rename TokenDetailsHandler, clock field. Note: stored hash is SHA-256 of the base64 cookie STRING; middleware must hash the same way. Next: user applies fixes, then point-1 tests.
