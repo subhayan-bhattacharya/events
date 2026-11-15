@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -152,6 +153,34 @@ func TestCreateSessionReturnsRawTokenAndStoresHash(t *testing.T) {
 	}
 }
 
+func TestCreateSessionCreatesDistinctTokens(t *testing.T) {
+	userID := uuid.MustParse("68d79072-980a-4550-bfc1-e49329a49475")
+	repository := &fakeRepository{}
+	service := auth.NewService(repository)
+
+	firstToken, err := service.CreateSession(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("create first session: %v", err)
+	}
+	secondToken, err := service.CreateSession(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("create second session: %v", err)
+	}
+
+	if firstToken.Token == secondToken.Token {
+		t.Error("successive sessions returned the same raw token")
+	}
+	if got := len(repository.insertedSessions); got != 2 {
+		t.Fatalf("inserted sessions: got %d, want 2", got)
+	}
+	if bytes.Equal(
+		repository.insertedSessions[0].TokenHash,
+		repository.insertedSessions[1].TokenHash,
+	) {
+		t.Error("successive sessions stored the same token hash")
+	}
+}
+
 func TestDevLoginCreatesSessionForConfiguredDevUser(t *testing.T) {
 	userID := uuid.MustParse("7c0efb4d-8298-46cd-8e4d-e6eb25327d46")
 	repository := &fakeRepository{userID: userID}
@@ -193,5 +222,67 @@ func TestDevLoginCreatesSessionForConfiguredDevUser(t *testing.T) {
 	}
 	if got := repository.insertedSessions[0].UserID; got != userID {
 		t.Errorf("inserted session user ID: got %s, want %s", got, userID)
+	}
+}
+
+func TestDevLoginStopsWhenUpsertFails(t *testing.T) {
+	upsertErr := errors.New("upsert user")
+	repository := &fakeRepository{upsertErr: upsertErr}
+	service := auth.NewService(repository)
+	config := auth.DevUserConfig{
+		Email:       "developer@example.com",
+		DisplayName: "Local Developer",
+		TimeZone:    "Europe/Berlin",
+	}
+
+	tokenData, err := service.DevLogin(context.Background(), config)
+	if !errors.Is(err, upsertErr) {
+		t.Fatalf("dev login error: got %v, want %v", err, upsertErr)
+	}
+	if tokenData != (auth.TokenData{}) {
+		t.Errorf("token data: got %+v, want zero value", tokenData)
+	}
+
+	wantCalls := []string{"upsert user"}
+	if !slices.Equal(repository.calls, wantCalls) {
+		t.Errorf(
+			"repository calls: got %v, want %v", repository.calls, wantCalls,
+		)
+	}
+	if got := len(repository.insertedSessions); got != 0 {
+		t.Errorf("inserted sessions: got %d, want 0", got)
+	}
+}
+
+func TestDevLoginReturnsNoTokenWhenSessionInsertFails(t *testing.T) {
+	userID := uuid.MustParse("a3efaf4a-741a-45a7-ae5e-0b9bda85896b")
+	insertErr := errors.New("insert session")
+	repository := &fakeRepository{
+		userID:    userID,
+		insertErr: insertErr,
+	}
+	service := auth.NewService(repository)
+	config := auth.DevUserConfig{
+		Email:       "developer@example.com",
+		DisplayName: "Local Developer",
+		TimeZone:    "Europe/Berlin",
+	}
+
+	tokenData, err := service.DevLogin(context.Background(), config)
+	if !errors.Is(err, insertErr) {
+		t.Fatalf("dev login error: got %v, want wrapped %v", err, insertErr)
+	}
+	if tokenData != (auth.TokenData{}) {
+		t.Errorf("token data: got %+v, want zero value", tokenData)
+	}
+
+	wantCalls := []string{"upsert user", "insert session"}
+	if !slices.Equal(repository.calls, wantCalls) {
+		t.Errorf(
+			"repository calls: got %v, want %v", repository.calls, wantCalls,
+		)
+	}
+	if got := len(repository.insertedSessions); got != 1 {
+		t.Errorf("insert attempts: got %d, want 1", got)
 	}
 }

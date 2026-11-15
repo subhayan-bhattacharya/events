@@ -47,3 +47,31 @@ D4, D23, D28, D30
   handler. Build, vet and the existing full Go tests pass, but no auth tests or
   HTTP wiring exist yet. The user paused ticket work after requesting a commit
   and push; resume this claimed ticket with dev login, middleware, logout and tests.
+- On 2026-11-14, point-1 service orchestration and its first unit-test slice are
+  committed and pushed in `8efd33e`. `DevLogin` upserts the fixed `dev`/`local`
+  identity with the configured profile before creating a session. Black-box tests
+  verify that call order and UUID propagation, plus `CreateSession` forwarding the
+  caller context and UUID, returning a 32-byte URL-base64 token, storing only its
+  SHA-256 hash, and using the same approximately seven-day expiry in the return and
+  repository input. `go build ./...`, `go vet ./...`, and `go test -short ./...`
+  pass. Point 1 is still incomplete: distinct-token and upsert/session-insert
+  failure tests remain, as do PostgreSQL repository integration tests. No dev-login
+  HTTP handler, runtime wiring, authentication middleware, or logout exists yet.
+- On 2026-11-15, `TestCreateSessionCreatesDistinctTokens` was added. It calls
+  `CreateSession` twice for the same user and verifies two session inserts, different
+  raw tokens, and different stored token hashes. The focused test, full short suite,
+  build, and vet pass. The remaining point-1 unit cases are upsert failure (no session
+  insert and zero token data) and session-insert failure (propagated error and zero
+  token data).
+- Later on 2026-11-15, `TestDevLoginStopsWhenUpsertFails` was added. A scripted
+  upsert error must remain discoverable with `errors.Is`, `DevLogin` must return zero
+  `TokenData`, and the repository must record only the upsert call with no inserted
+  session. The focused test, full short suite, build, and vet pass. Session-insert
+  failure is the only remaining point-1 unit case.
+- `TestDevLoginReturnsNoTokenWhenSessionInsertFails` now covers that final unit case.
+  After a successful upsert, a scripted insert error remains discoverable through the
+  service's wrapping, the returned `TokenData` is zero, and the fake records exactly
+  one insert attempt after the upsert. Build, vet, the full short suite, and an
+  independent review pass with no actionable findings. The planned point-1 fake-
+  repository unit scenarios are complete; PostgreSQL repository integration tests
+  remain before the point-1 checkpoint is complete.
