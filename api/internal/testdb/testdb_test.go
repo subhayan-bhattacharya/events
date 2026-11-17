@@ -8,6 +8,41 @@ import (
 	"github.com/subhayan-bhattacharya/events/api/internal/testdb"
 )
 
+func TestStartMigrated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration test requires Docker")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	database, err := testdb.StartMigrated(ctx)
+	if err != nil {
+		t.Fatalf("start migrated test database: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cleanupCancel()
+		if err := database.Close(cleanupCtx); err != nil {
+			t.Errorf("close test database: %v", err)
+		}
+	})
+
+	for _, table := range []string{"users", "sessions"} {
+		var exists bool
+		if err := database.Pool.QueryRow(
+			ctx,
+			`SELECT to_regclass($1) IS NOT NULL`,
+			"public."+table,
+		).Scan(&exists); err != nil {
+			t.Fatalf("check %s table: %v", table, err)
+		}
+		if !exists {
+			t.Errorf("expected %s table to exist after migrations", table)
+		}
+	}
+}
+
 func TestTransactionRollback(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test requires Docker")

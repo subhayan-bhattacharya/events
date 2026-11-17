@@ -75,3 +75,13 @@ D4, D23, D28, D30
   independent review pass with no actionable findings. The planned point-1 fake-
   repository unit scenarios are complete; PostgreSQL repository integration tests
   remain before the point-1 checkpoint is complete.
+- On 2026-11-17, the point-1 PostgreSQL repository checkpoint was completed. Production
+  goose migrations are embedded for tests, `testdb.StartMigrated` applies them once to
+  an isolated PostgreSQL 17 container, and repository subtests bind sqlc to rollback
+  transactions. The integration suite proves that user upsert inserts then refreshes
+  one identity while preserving its UUID, a case-insensitive duplicate email under a
+  different identity fails on `uq_users_email`, and session insertion persists the
+  exact token hash, owner UUID and expiry. The focused Docker tests, complete uncached
+  suite, build, vet, short suite, sqlc compile, formatting/diff checks and independent
+  review pass. Point 1 is complete; next within this claimed ticket is the dev-only HTTP
+  handler in point 2 of `docs/plans/ticket-05-dev-login.md`.

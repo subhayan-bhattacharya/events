@@ -5,14 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+	"github.com/subhayan-bhattacharya/events/api/db/migrations"
 	appPostgres "github.com/subhayan-bhattacharya/events/api/internal/postgres"
 	tcPostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 const image = "postgres:17-alpine"
+const cleanupTimeout = 30 * time.Second
 
 // Database is an isolated PostgreSQL instance for an integration test suite.
 type Database struct {
@@ -52,6 +57,45 @@ func Start(ctx context.Context) (*Database, error) {
 		URL:       url,
 		container: container,
 	}, nil
+}
+
+// StartMigrated launches PostgreSQL, applies the production goose migrations,
+// and returns the ready database. It cleans up the container if migration fails.
+func StartMigrated(ctx context.Context) (*Database, error) {
+	database, err := Start(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := applyMigrations(ctx, database.Pool); err != nil {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
+		defer cancel()
+		cleanupErr := database.Close(cleanupCtx)
+		return nil, errors.Join(
+			fmt.Errorf("migrate test database: %w", err),
+			cleanupErr,
+		)
+	}
+
+	return database, nil
+}
+
+func applyMigrations(ctx context.Context, pool *pgxpool.Pool) error {
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	defer sqlDB.Close()
+
+	provider, err := goose.NewProvider(
+		goose.DialectPostgres,
+		sqlDB,
+		migrations.Files(),
+	)
+	if err != nil {
+		return fmt.Errorf("create goose provider: %w", err)
+	}
+	if _, err := provider.Up(ctx); err != nil {
+		return fmt.Errorf("apply goose migrations: %w", err)
+	}
+	return nil
 }
 
 // Begin starts a transaction for one test. The caller must roll it back.
