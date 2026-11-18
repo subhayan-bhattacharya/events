@@ -21,6 +21,16 @@ type Repository interface {
 	UpsertUser(ctx context.Context, userDetails UserIdentity) (uuid.UUID, error)
 }
 
+// DevLoginService is the part of the auth service that the dev-login handler
+// needs: it signs in the fixed development user and returns a new session
+// token. It is declared here, by its consumer, so tests can supply a fake;
+// *auth.Service satisfies it.
+type DevLoginService interface {
+	DevLogin(ctx context.Context, devUserDetails DevUserConfig) (
+		TokenData, error,
+	)
+}
+
 // TokenData is a newly issued session: the raw token that goes into
 // the cookie and the time the session expires. The raw token is never stored.
 type TokenData struct {
@@ -122,3 +132,5 @@ func (s *Service) CreateSession(
 	}
 	return tokenDetails, nil
 }
+
+var _ DevLoginService = (*Service)(nil)

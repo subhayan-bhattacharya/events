@@ -85,3 +85,16 @@ D4, D23, D28, D30
   suite, build, vet, short suite, sqlc compile, formatting/diff checks and independent
   review pass. Point 1 is complete; next within this claimed ticket is the dev-only HTTP
   handler in point 2 of `docs/plans/ticket-05-dev-login.md`.
+- On 2026-11-17, the point-2 dev-only HTTP handler checkpoint in `api/internal/httpapi`
+  was completed and verified. Untagged `requireOrigin` in `origin.go` enforces exact
+  `Origin` header comparison (D31) and rejects missing or empty origins with 403 before
+  calling `next` (covered by 12 table-driven cases in `origin_test.go`). Dev-tagged
+  `DevLoginHandler` in `devlogin.go` wraps `requireOrigin("http://localhost:8080")`,
+  rejects non-empty request bodies (including chunked/unknown-length bodies via a 1-byte
+  `io.ReadFull` probe) or body read errors with 400, calls `auth.DevLoginService.DevLogin`,
+  returns 500 with no cookie on service failure, and sets the `__Host-session` cookie
+  (`Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, no `Domain`, `Expires` from token data)
+  with an empty 204 response on success (covered by 6 black-box unit tests in
+  `devlogin_test.go`). `gofmt`, `go build`, `go vet`, and `go test -short` pass both with
+  and without `-tags dev`. Next is point 3: startup config validation and `dev` / `!dev`
+  route registration in `api/cmd/api/` plus `.env.example` placeholders.
